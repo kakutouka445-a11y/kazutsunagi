@@ -113,8 +113,8 @@
   .mini.swap{flex:2; background:linear-gradient(180deg,rgba(150,220,140,.30),rgba(110,190,90,.20)); color:#e6ffdb; border-color:rgba(150,220,140,.5);}
   .mini.quit{background:linear-gradient(180deg,rgba(255,150,160,.30),rgba(255,90,110,.20)); color:#ffdce0; border-color:rgba(255,155,165,.5);}
   .mini:active{transform:translateY(2px); box-shadow:0 3px 10px rgba(0,0,0,.3);}
-  .big{font-size:72px; font-weight:bold; color:var(--accent); text-align:center; margin:2px 0; line-height:1.05; text-shadow:0 0 30px rgba(255,205,120,.6);}
-  .bigunit{font-size:30px; font-weight:bold; color:var(--accent); margin-left:4px;}
+  .big{font-size:clamp(40px,15vw,72px); font-weight:bold; color:var(--accent); text-align:center; margin:2px 0; line-height:1.05; white-space:nowrap; text-shadow:0 0 30px rgba(255,205,120,.6);}
+  .bigunit{font-size:clamp(20px,6.5vw,30px); font-weight:bold; color:var(--accent); margin-left:4px;}
   .resline{text-align:center; font-size:16px; margin:3px 0; color:#d4ddf5;}
   .star{font-size:32px; text-align:center;}
   #recordBanner{display:none; text-align:center; font-size:27px; font-weight:bold; color:#fff;
@@ -233,7 +233,7 @@
     <div class="formula" id="formula"></div>
     <div class="timebar" id="timebar"><i id="timefill"></i></div>
     <div class="boardWrap" id="boardWrap">
-      <canvas id="game" width="600" height="600"></canvas>
+      <canvas id="game" width="520" height="600"></canvas>
       <div class="combo" id="comboFx"></div>
     </div>
     <div class="toprow">
@@ -268,9 +268,10 @@ const RUW=rulesCanvas.width, RUH=rulesCanvas.height;
 let ctx=gctx;                 // helpers draw onto whichever canvas is active
 const canvas=gameCanvas, W=canvas.width, H=canvas.height;
 const RW=resCanvas.width, RH=resCanvas.height;
-const JAR={x:100, y:90, w:W-200, bottom:H-26, corner:30};   // びんは400px幅のまま・左右の余白をひろげる
+const JAR={x:64, y:84, w:W-72, bottom:H-22, corner:30};   // びんを 右寄せ（右の余白を最小化、左に 大きな くみあわせ）
+const JCX=JAR.x+JAR.w/2;   // びんの 中心（くび・落下位置の きじゅん）
 const NECK_W=120, NECK_TOP=44;
-const R=26;
+const R=30;
 const CAP=Math.round((JAR.w*(JAR.bottom-JAR.y))*0.82/(Math.PI*R*R));
 
 const SHAPES=[
@@ -396,7 +397,7 @@ function enumCombos(T,K,maxVal){ const res=[];
   return res; }
 function randNum(){return 1+(Math.random()*state.maxNum|0);}
 function newBall(x,y){return {x,y,ox:x,oy:y,n:randNum(),s:randShape(),r:R,cbox:null};}
-function spawnTop(){const x=W/2+(Math.random()-0.5)*(NECK_W-2*R);const b=newBall(x,NECK_TOP-10);b.oy=b.y-6;state.balls.push(b);}
+function spawnTop(){const x=JCX+(Math.random()-0.5)*(NECK_W-2*R);const b=newBall(x,NECK_TOP-10);b.oy=b.y-6;state.balls.push(b);}
 function fillJar(){
   state.balls=[];
   let x0=JAR.x+R+2, y=JAR.bottom-R-2, x=x0;
@@ -445,7 +446,7 @@ function clampJar(b){
 }
 
 /* ---------- formula ---------- */
-function touching(a,b){return Math.hypot(a.x-b.x,a.y-b.y)<=a.r+b.r+TOUCH_TOL;}
+function touching(a,b){return Math.hypot(a.x-b.x,a.y-b.y)<=(a.r+b.r)*1.5;}   // ななめで ほぼ隣 でも つなげる
 function committedSum(){return state.committed.reduce((s,g)=>s+g.count,0);}
 function newFormula(){
   state.K=state.stageK;
@@ -613,11 +614,11 @@ function jarPath(){
     ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
     ctx.lineTo(x+w,b-c); ctx.quadraticCurveTo(x+w,b,x+w-c,b); ctx.lineTo(x+c,b);
     ctx.quadraticCurveTo(x,b,x,b-c); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); return; }
-  ctx.moveTo(W/2-NECK_W/2,NECK_TOP);ctx.lineTo(W/2+NECK_W/2,NECK_TOP);
-  ctx.lineTo(W/2+NECK_W/2,y-16);ctx.quadraticCurveTo(x+w,y-16,x+w,y+10);
+  ctx.moveTo(JCX-NECK_W/2,NECK_TOP);ctx.lineTo(JCX+NECK_W/2,NECK_TOP);
+  ctx.lineTo(JCX+NECK_W/2,y-16);ctx.quadraticCurveTo(x+w,y-16,x+w,y+10);
   ctx.lineTo(x+w,b-c);ctx.quadraticCurveTo(x+w,b,x+w-c,b);
   ctx.lineTo(x+c,b);ctx.quadraticCurveTo(x,b,x,b-c);
-  ctx.lineTo(x,y+10);ctx.quadraticCurveTo(x,y-16,W/2-NECK_W/2,y-16);ctx.closePath();
+  ctx.lineTo(x,y+10);ctx.quadraticCurveTo(x,y-16,JCX-NECK_W/2,y-16);ctx.closePath();
 }
 function drawJar(){
   ctx.clearRect(0,0,W,H);
@@ -636,8 +637,8 @@ function drawJarFront(){
   ctx.lineWidth=4; ctx.strokeStyle="rgba(175,215,255,.85)"; ctx.stroke(); ctx.restore();
   ctx.lineWidth=1.4; ctx.strokeStyle="rgba(255,255,255,.5)"; ctx.stroke();
   if(shakeT===0){
-    ctx.fillStyle="#caa24a";ctx.fillRect(W/2-NECK_W/2-6,NECK_TOP-20,NECK_W+12,22);
-    ctx.strokeStyle="#9c7a2e";ctx.lineWidth=3;ctx.strokeRect(W/2-NECK_W/2-6,NECK_TOP-20,NECK_W+12,22);
+    ctx.fillStyle="#caa24a";ctx.fillRect(JCX-NECK_W/2-6,NECK_TOP-20,NECK_W+12,22);
+    ctx.strokeStyle="#9c7a2e";ctx.lineWidth=3;ctx.strokeRect(JCX-NECK_W/2-6,NECK_TOP-20,NECK_W+12,22);
   }
 }
 function drawCombos(){
@@ -645,13 +646,13 @@ function drawCombos(){
   const slots = state.totalCombos<=12;                 // すくなければ もくひょうを ぜんぶ表示
   const list = slots ? state.allCombos : state.numCombos;
   if(!list.length) return;
-  const cols=[{cx:50,y:JAR.y+18},{cx:W-50,y:JAR.y+18}]; let ci=0;
+  const cur={cx:32,y:JAR.y+20};   // ひだりの 余白に 大きく 1列で
   for(const co of list){
     const got = slots ? state.numCombos.find(o=>o.key===co.key) : co;
-    const n=co.nums.length, g=Math.min(21,78/(n*1.9)), rowH=g*2+((got&&got.count>1)?22:16);
-    if(cols[ci].y+rowH>JAR.bottom-8){ ci++; if(ci>1) break; }
-    const cur=cols[ci], sp=g*1.8, totalW=(n-1)*sp;
-    { const w=totalW+g*2.4, hh=g*1.9, rx0=cur.cx-w/2, ry0=cur.y-hh*0.5; ctx.save(); ctx.beginPath();
+    const n=co.nums.length, g=Math.min(16,60/(n*1.9)), rowH=g*2+((got&&got.count>1)?20:14);
+    if(cur.y+rowH>JAR.bottom-6) break;
+    const sp=g*1.8, totalW=(n-1)*sp;
+    { const w=totalW+g*2.0, hh=g*1.9, rx0=cur.cx-w/2, ry0=cur.y-hh*0.5; ctx.save(); ctx.beginPath();
       if(ctx.roundRect) ctx.roundRect(rx0,ry0,w,hh,hh*0.5); else ctx.rect(rx0,ry0,w,hh);
       if(got){ ctx.shadowColor="rgba(95,224,176,.85)"; ctx.shadowBlur=9; ctx.fillStyle="rgba(95,224,176,.22)"; ctx.fill(); ctx.lineWidth=3; ctx.strokeStyle="#5fe0b0"; ctx.stroke(); }  // クリア済み＝みどりで かこむ
       else { ctx.lineWidth=1.4; ctx.setLineDash([3,3]); ctx.strokeStyle="rgba(255,255,255,.22)"; ctx.stroke(); }                                                                  // まだ＝はせん
@@ -662,7 +663,7 @@ function drawCombos(){
       ctx.fillStyle="#fff"; ctx.font=`bold ${g*1.05}px 'M PLUS Rounded 1c',sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle";
       ctx.lineWidth=1.8; ctx.strokeStyle="rgba(0,0,0,.5)"; ctx.strokeText(num,gx,cur.y); ctx.fillText(num,gx,cur.y);
       ctx.globalAlpha=1; }
-    if(got){ const br=g*0.52, bx=cur.cx+totalW/2+g*0.55, by=cur.y-g*0.95;   // クリア済みに みどりの ✓ バッジ
+    if(got){ const br=g*0.48, bx=cur.cx+totalW/2+g*0.4, by=cur.y-g*0.9;   // クリア済みに みどりの ✓ バッジ
       ctx.beginPath(); ctx.arc(bx,by,br,0,7); ctx.fillStyle="#34c98a"; ctx.fill();
       ctx.lineWidth=Math.max(2,br*0.32); ctx.strokeStyle="#fff"; ctx.lineCap="round"; ctx.lineJoin="round";
       ctx.beginPath(); ctx.moveTo(bx-br*0.42,by+br*0.02); ctx.lineTo(bx-br*0.06,by+br*0.4); ctx.lineTo(bx+br*0.46,by-br*0.4); ctx.stroke(); ctx.lineCap="butt"; }
